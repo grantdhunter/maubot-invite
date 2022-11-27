@@ -45,7 +45,8 @@ class Invite(Plugin):
         pass
 
     @invite.subcommand("generate", help="Generate a new invitation token.")
-    async def generate(self, evt: MessageEvent) -> None:
+    @command.argument("max_usage", required=False)
+    async def generate(self, evt: MessageEvent, max_usage: int=1) -> None:
         await evt.mark_read()
 
         if not await self.can_manage(evt):
@@ -65,10 +66,10 @@ class Invite(Plugin):
             'Authorization': f"SharedSecret {self.config['admin_secret']}",
             'Content-Type': 'application/json'
             }
-        
+
         try:
             response = await self.http.post(f"{self.config['api_url']}/token", headers=headers, \
-                    json={"max_usage": 1, "one_time": True, "ex_date": ex_date, "expiration_date": ex_date})
+                    json={"max_usage": max_usage, "one_time": True, "ex_date": ex_date, "expiration_date": ex_date})
             status = response.status
             resp_json = await response.json()
         except Exception as e:
@@ -98,8 +99,8 @@ class Invite(Plugin):
 
         if self.config['message']:
             msg = self.config["message"].format(token=token, reg_url=self.config['reg_url'],
-                    reg_page=self.config['reg_page'], expiration=self.config['expiration'])
-        
+                                                reg_page=self.config['reg_page'], expiration=self.config['expiration'], max_usage=max_usage)
+
         await evt.respond(msg, allow_html=True)
 
     @invite.subcommand("status", help="Return the status of an invite token.")
@@ -126,7 +127,7 @@ class Invite(Plugin):
         except Exception as e:
             await evt.respond(f"request failed: {e.message}")
             return None
-        
+
         # this isn't formatted nicely but i don't really care that much
         await evt.respond(f"Status of token {token}: \n<pre><code format=json>{json.dumps(resp_json, indent=4)}</code></pre>", allow_html=True)
 
@@ -166,7 +167,7 @@ class Invite(Plugin):
             except Exception as e:
                 await evt.respond(f"request failed: {e.message}")
                 return None
-        
+
         # this isn't formatted nicely but i don't really care that much
         await evt.respond(f"<pre><code format=json>{json.dumps(resp_json, indent=4)}</code></pre>", allow_html=True)
 
@@ -189,6 +190,6 @@ class Invite(Plugin):
         except Exception as e:
             await evt.respond(f"request failed: {e.message}")
             return None
-        
+
         # this isn't formatted nicely but i don't really care that much
         await evt.respond(f"<pre><code format=json>{json.dumps(resp_json, indent=4)}</code></pre>", allow_html=True)
